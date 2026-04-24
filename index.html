@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOODSHARE | Community Food Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <style>
+        :root {
+            --bg: #f7efe3;
+            --bg-soft: #fffaf4;
+            --panel: rgba(255, 250, 244, 0.82);
+            --panel-strong: #fffdf9;
+            --ink: #163126;
+            --muted: #627264;
+            --line: rgba(22, 49, 38, 0.1);
+            --sage: #7ea172;
+            --moss: #365f47;
+            --gold: #f0b76f;
+            --terracotta: #cb6b4e;
+            --berry: #8e3d52;
+            --sky: #7eaec5;
+            --shadow: 0 24px 70px rgba(49, 53, 36, 0.12);
+            --radius-xl: 30px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(240, 183, 111, 0.28), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(126, 161, 114, 0.22), transparent 30%),
+                linear-gradient(180deg, #fbf5ea 0%, #f6ecdf 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.03em;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        .ambient-shapes {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .ambient-shapes span {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(10px);
+            opacity: 0.5;
+            animation: drift 16s linear infinite alternate;
+        }
+
+        .ambient-shapes span:nth-child(1) {
+            width: 240px;
+            height: 240px;
+            top: 5%;
+            left: -5%;
+            background: rgba(240, 183, 111, 0.22);
+        }
+
+        .ambient-shapes span:nth-child(2) {
+            width: 180px;
+            height: 180px;
+            top: 35%;
+            right: 5%;
+            background: rgba(126, 174, 197, 0.2);
+            animation-duration: 18s;
+        }
+
+        .ambient-shapes span:nth-child(3) {
+            width: 260px;
+            height: 260px;
+            bottom: -6%;
+            left: 32%;
+            background: rgba(126, 161, 114, 0.18);
+            animation-duration: 20s;
+        }
+
+        @keyframes drift {
+            from { transform: translate3d(0, 0, 0) rotate(0deg); }
+            to { transform: translate3d(40px, -30px, 0) rotate(18deg); }
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            padding: 1rem 2rem;
+            backdrop-filter: blur(18px);
+            background: rgba(252, 247, 240, 0.88);
+            border-bottom: 1px solid rgba(22, 49, 38, 0.08);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .brand-mark {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background: linear-gradient(145deg, var(--moss), var(--sage));
+            box-shadow: 0 12px 28px rgba(54, 95, 71, 0.25);
+        }
+
+        .brand-copy {
+            display: flex;
+            flex-direction: column;
+            line-height: 1;
+        }
+
+        .brand-copy strong {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 0.04em;
+        }
+
+        .brand-copy span {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            list-style: none;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-links a {
+            padding: 0.7rem 1rem;
+            border-radius: 999px;
+            color: var(--ink);
+            font-weight: 700;
+            transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover {
+            background: rgba(54, 95, 71, 0.08);
+            color: var(--moss);
+            transform: translateY(-1px);
+        }
+
+        .emergency-btn {
+            background: linear-gradient(135deg, var(--terracotta), #e78b5b);
+            color: #fff;
+            box-shadow: 0 14px 28px rgba(203, 107, 78, 0.25);
+        }
+
+        .emergency-btn:hover {
+            background: linear-gradient(135deg, #bf5c42, #dd7b52);
+            color: #fff;
+        }
+
+        .main-content {
+            min-height: calc(100vh - 84px);
+        }
+
+        .page {
+            display: none;
+            min-height: calc(100vh - 84px);
+        }
+
+        .page.active {
+            display: block;
+            animation: pageFade 0.45s ease;
+        }
+
+        @keyframes pageFade {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-hero {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 5rem 2rem 2rem;
+        }
+
+        .page-hero-shell {
+            border-radius: 36px;
+            padding: 4rem;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .page-hero-shell::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.12), transparent 28%);
+            pointer-events: none;
+        }
+
+        .home-hero-shell {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 2.5rem;
+            align-items: center;
+            background:
+                linear-gradient(135deg, rgba(18, 46, 35, 0.86), rgba(54, 95, 71, 0.8)),
+                url('images/pexels-jimbear-1657935.jpg') center/cover;
+        }
+
+        .about-hero-shell {
+            background: linear-gradient(135deg, #395f50, #7ea172, #d7a85f);
+        }
+
+        .donate-hero-shell {
+            background: linear-gradient(135deg, #365f47, #4d8b64, #f0b76f);
+        }
+
+        .request-hero-shell {
+            background: linear-gradient(135deg, #22455b, #4c7d97, #89aa72);
+        }
+
+        .contact-hero-shell {
+            background: linear-gradient(135deg, #6b3d57, #8e3d52, #d08b64);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0.95rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.85rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .hero-copy h1,
+        .page-hero-shell h1 {
+            font-size: clamp(2.8rem, 6vw, 5.2rem);
+            line-height: 0.94;
+            margin-bottom: 1.1rem;
+            max-width: 11ch;
+        }
+
+        .hero-copy p,
+        .page-hero-shell p {
+            max-width: 56ch;
+            font-size: 1.14rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .hero-copy .cta-buttons {
+            margin-top: 2rem;
+        }
+
+        .hero-data {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.8rem;
+        }
+
+        .hero-data-card {
+            min-width: 160px;
+            padding: 1rem 1.1rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.13);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-data-card strong {
+            display: block;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.45rem;
+        }
+
+        .hero-visual {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .hero-visual-main {
+            border-radius: 30px;
+            overflow: hidden;
+            min-height: 380px;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 22px 60px rgba(15, 29, 23, 0.28);
+        }
+
+        .hero-visual-main img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-visual-cards {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .hero-mini-card {
+            border-radius: 22px;
+            padding: 1rem 1.1rem;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            backdrop-filter: blur(12px);
+        }
+
+        .hero-mini-card i {
+            margin-bottom: 0.65rem;
+            font-size: 1.2rem;
+        }
+
+        .section {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.8rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            line-height: 0.98;
+            max-width: 10ch;
+        }
+
+        .section-header p {
+            max-width: 42ch;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            border-radius: 999px;
+            padding: 0.95rem 1.45rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--moss), #4f7a5d);
+            color: #fff;
+            box-shadow: 0 16px 34px rgba(54, 95, 71, 0.24);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gold), #f6cf8f);
+            color: #4b3117;
+            box-shadow: 0 16px 34px rgba(240, 183, 111, 0.25);
+        }
+
+        .btn-ghost {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+        }
+
+        .stats-section {
+            padding: 1rem 2rem 2rem;
+        }
+
+        .stats-shell {
+            max-width: 1240px;
+            margin: -3rem auto 0;
+            padding: 1.4rem;
+            border-radius: 30px;
+            background: rgba(255, 252, 247, 0.88);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 24px 50px rgba(54, 52, 38, 0.12);
+            border: 1px solid rgba(22, 49, 38, 0.08);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card,
+        .card,
+        .feature-card,
+        .impact-card,
+        .timeline-card,
+        .donation-card,
+        .contact-card,
+        .request-food-form-card {
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(22, 49, 38, 0.08);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card {
+            padding: 1.65rem;
+        }
+
+        .stat-card i {
+            width: 54px;
+            height: 54px;
+            display: grid;
+            place-items: center;
+            border-radius: 18px;
+            margin-bottom: 1rem;
+            color: #fff;
+            background: linear-gradient(135deg, var(--berry), var(--terracotta));
+        }
+
+        .stat-number {
+            display: block;
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            line-height: 1;
+            margin-bottom: 0.45rem;
+        }
+
+        .stat-card p {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .feature-grid,
+        .impact-grid,
+        .timeline-grid,
+        .gallery-preview-grid {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .feature-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .feature-card,
+        .impact-card,
+        .timeline-card {
+            padding: 1.65rem;
+        }
+
+        .feature-card i,
+        .impact-card i,
+        .timeline-card i {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 1rem;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+
+        .feature-card:nth-child(1) i,
+        .impact-card:nth-child(1) i,
+        .timeline-card:nth-child(1) i { background: linear-gradient(135deg, #365f47, #6d9a6c); }
+        .feature-card:nth-child(2) i,
+        .impact-card:nth-child(2) i,
+        .timeline-card:nth-child(2) i { background: linear-gradient(135deg, #cb6b4e, #f0b76f); }
+        .feature-card:nth-child(3) i,
+        .impact-card:nth-child(3) i,
+        .timeline-card:nth-child(3) i { background: linear-gradient(135deg, #5c6d95, #7eaec5); }
+
+        .feature-card h3,
+        .impact-card h3,
+        .timeline-card h3 {
+            font-size: 1.35rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .feature-card p,
+        .impact-card p,
+        .timeline-card p {
+            color: var(--muted);
+        }
+
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 1.4rem;
+            align-items: stretch;
+        }
+
+        .story-card {
+            padding: 2rem;
+        }
+
+        .story-card p {
+            color: var(--muted);
+            font-size: 1.08rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .story-highlights {
+            display: grid;
+            gap: 0.85rem;
+            margin: 1.5rem 0 1.8rem;
+        }
+
+        .story-highlights div {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 1rem;
+            border-radius: 18px;
+            background: rgba(54, 95, 71, 0.06);
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .story-visual {
+            min-height: 100%;
+            overflow: hidden;
+        }
+
+        .story-visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .impact-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .about-image-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .about-image-strip div {
+            border-radius: 28px;
+            overflow: hidden;
+            min-height: 300px;
+            box-shadow: var(--shadow);
+        }
+
+        .about-image-strip img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .timeline-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .donation-types {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.4rem;
+        }
+
+        .donation-card {
+            overflow: hidden;
+        }
+
+        .donation-header {
+            padding: 2rem;
+            color: #fff;
+        }
+
+        .money-donation {
+            background: linear-gradient(135deg, #365f47, #6d9a6c);
+        }
+
+        .food-donation {
+            background: linear-gradient(135deg, #cb6b4e, #f0b76f);
+        }
+
+        .donation-header h3 {
+            font-size: 1.8rem;
+            margin: 0.7rem 0 0.45rem;
+        }
+
+        .donation-form {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.45rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 1px solid rgba(22, 49, 38, 0.12);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: rgba(54, 95, 71, 0.45);
+            box-shadow: 0 0 0 4px rgba(126, 161, 114, 0.16);
+            transform: translateY(-1px);
+        }
+
+        .form-note {
+            color: var(--muted);
+            font-size: 0.94rem;
+        }
+
+        .success-message,
+        .error-message {
+            display: none;
+            margin-bottom: 1rem;
+            border-radius: 18px;
+            padding: 1rem 1.1rem;
+            font-weight: 700;
+        }
+
+        .success-message {
+            background: rgba(76, 147, 100, 0.14);
+            color: #27543a;
+            border: 1px solid rgba(76, 147, 100, 0.22);
+        }
+
+        .error-message {
+            background: rgba(203, 107, 78, 0.12);
+            color: #7c3320;
+            border: 1px solid rgba(203, 107, 78, 0.22);
+        }
+
+        .success-message.show,
+        .error-message.show,
+        .loading.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            padding: 1rem 0 1.5rem;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 4px solid rgba(54, 95, 71, 0.14);
+            border-top-color: var(--moss);
+            margin: 0 auto 0.8rem;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .map-picker {
+            margin-top: 0.8rem;
+            overflow: hidden;
+            border-radius: 22px;
+            border: 1px solid rgba(22, 49, 38, 0.1);
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .map-picker-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            padding: 1rem;
+            background: rgba(126, 174, 197, 0.12);
+            border-bottom: 1px solid rgba(22, 49, 38, 0.08);
+        }
+
+        .map-picker-toolbar button {
+            border: none;
+            border-radius: 999px;
+            padding: 0.8rem 1rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #365f47, #6d9a6c);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .map-picker-note,
+        .location-status {
+            padding: 0.95rem 1rem;
+            color: var(--muted);
+        }
+
+        #request-food-map,
+        #food-donation-map {
+            height: 290px;
+            width: 100%;
+        }
+
+        .request-food-shell {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 0.92fr 1.08fr;
+            gap: 1.4rem;
+            align-items: start;
+        }
+
+        .request-food-sidebar,
+        .request-food-form-card {
+            padding: 2rem;
+        }
+
+        .request-food-sidebar {
+            color: #fff;
+            background: linear-gradient(160deg, #17324d, #2f5f6f 55%, #7ea172);
+            position: sticky;
+            top: 104px;
+        }
+
+        .request-food-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 999px;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.14);
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 800;
+        }
+
+        .request-food-sidebar h3 {
+            font-size: 2.2rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+
+        .request-food-sidebar p {
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .request-food-stat-grid,
+        .request-food-support-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            margin-top: 1.4rem;
+        }
+
+        .request-food-stat,
+        .request-food-support-item {
+            padding: 1rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .request-food-stat strong,
+        .request-food-support-item strong {
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
+        .request-food-checklist {
+            list-style: none;
+            display: grid;
+            gap: 0.8rem;
+            margin: 1.4rem 0;
+        }
+
+        .request-food-checklist li {
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
+
+        .request-food-checklist i {
+            margin-top: 0.15rem;
+            color: #ffe39d;
+        }
+
+        .request-food-hotline {
+            padding: 1rem 1.1rem;
+            border-radius: 20px;
+            background: rgba(255, 240, 220, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .request-food-form-header h3 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .request-food-form-header p {
+            color: var(--muted);
+        }
+
+        .request-food-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+
+        .request-food-badges span {
+            padding: 0.5rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(126, 174, 197, 0.14);
+            color: #284e63;
+            font-weight: 800;
+            font-size: 0.92rem;
+        }
+
+        .request-food-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem 1.2rem;
+            margin-top: 1.4rem;
+        }
+
+        .request-food-form-grid .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group-full,
+        .request-food-section-title,
+        .request-food-form-note,
+        .request-food-submit {
+            grid-column: 1 / -1;
+        }
+
+        .request-food-section-title {
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(22, 49, 38, 0.08);
+        }
+
+        .request-food-section-title span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            color: #27543a;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.9rem;
+        }
+
+        .request-food-form-note {
+            padding: 1rem;
+            border-radius: 18px;
+            background: rgba(240, 183, 111, 0.18);
+            color: #6b4d18;
+            font-weight: 600;
+        }
+
+        .request-food-submit .btn {
+            width: 100%;
+            justify-content: center;
+            padding: 1rem 1.2rem;
+        }
+
+        .contact-layout {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 0.95fr 1.05fr;
+            gap: 1.4rem;
+        }
+
+        .contact-card {
+            padding: 2rem;
+        }
+
+        .contact-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .contact-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 1.1rem;
+            border-radius: 20px;
+            background: rgba(54, 95, 71, 0.05);
+        }
+
+        .contact-item i {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background: linear-gradient(135deg, var(--berry), var(--terracotta));
+            flex-shrink: 0;
+        }
+
+        .footer {
+            margin-top: 3rem;
+            background: #163126;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .footer-content {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 3rem 2rem 2rem;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr 0.9fr;
+            gap: 1.4rem;
+        }
+
+        .footer-panel {
+            padding: 1.5rem;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .footer-panel h3 {
+            margin-bottom: 0.8rem;
+            font-size: 1.4rem;
+        }
+
+        .footer-panel p,
+        .footer-panel a {
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        .footer-links {
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .footer-links a:hover {
+            color: #ffe39d;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+            padding: 1rem 2rem 2rem;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .animate-entry {
+            opacity: 0;
+            transform: translateY(26px);
+        }
+
+        .animate-in {
+            animation: riseIn 0.6s ease forwards;
+        }
+
+        @keyframes riseIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1120px) {
+            .home-hero-shell,
+            .split-layout,
+            .request-food-shell,
+            .contact-layout,
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-container,
+            .feature-grid,
+            .impact-grid,
+            .timeline-grid,
+            .donation-types {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .request-food-sidebar {
+                position: static;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .navbar {
+                padding: 1rem;
+                align-items: start;
+                flex-direction: column;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: start;
+                overflow-x: auto;
+                padding-bottom: 0.25rem;
+            }
+
+            .page-hero,
+            .section,
+            .stats-section,
+            .donation-types,
+            .request-food-shell,
+            .contact-layout,
+            .footer-content {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .page-hero-shell {
+                padding: 2rem 1.35rem;
+            }
+
+            .hero-copy h1,
+            .page-hero-shell h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-visual-cards,
+            .stats-container,
+            .feature-grid,
+            .impact-grid,
+            .timeline-grid,
+            .donation-types,
+            .about-image-strip,
+            .request-food-stat-grid,
+            .request-food-support-grid,
+            .request-food-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: start;
+            }
+
+            .request-food-sidebar,
+            .request-food-form-card,
+            .contact-card,
+            .story-card,
+            .donation-form {
+                padding: 1.35rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-shapes">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <nav class="navbar">
+        <div class="brand">
+            <div class="brand-mark"><i class="fas fa-heart"></i></div>
+            <div class="brand-copy">
+                <strong>FOODSHARE</strong>
+                <span>Feeding hope locally</span>
+            </div>
+        </div>
+        <ul class="nav-links">
+            <li><a onclick="showPage('home')">Home</a></li>
+            <li><a onclick="showPage('about')">About</a></li>
+            <li><a onclick="showPage('donate')">Donate</a></li>
+            <li><a onclick="showPage('request-food')">Request Food</a></li>
+            <li><a target="_blank" href="gallery.html">Gallery</a></li>
+            <li><a onclick="showPage('contact')">Contact</a></li>
+            <li><a href="tel:+918421269332" class="emergency-btn"><i class="fas fa-phone"></i> Emergency Food</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div id="home" class="page active">
+            <section class="page-hero">
+                <div class="page-hero-shell home-hero-shell">
+                    <div class="hero-copy">
+                        <div class="eyebrow"><i class="fas fa-leaf"></i> Community Food Network</div>
+                        <h1>Feeding hope with dignity, speed, and care.</h1>
+                        <p>FOODSHARE connects donors, volunteers, and families so surplus food becomes real support for people who need it most across the community.</p>
+                        <div class="cta-buttons">
+                            <button class="btn btn-primary" onclick="showPage('donate')"><i class="fas fa-hand-holding-heart"></i> Donate Now</button>
+                            <button class="btn btn-secondary" onclick="showPage('request-food')"><i class="fas fa-utensils"></i> Request Support</button>
+                            <button class="btn btn-ghost" onclick="showPage('about')"><i class="fas fa-arrow-right"></i> Learn More</button>
+                        </div>
+                        <div class="hero-data">
+                            <div class="hero-data-card">
+                                <strong>Fast response</strong>
+                                Support requests reviewed with urgency and care.
+                            </div>
+                            <div class="hero-data-card">
+                                <strong>Local impact</strong>
+                                Food reaches homes, shelters, and community groups.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hero-visual">
+                        <div class="hero-visual-main">
+                            <img src="images/pexels-lagosfoodbank-9090750.jpg" alt="Community food distribution">
+                        </div>
+                        <div class="hero-visual-cards">
+                            <div class="hero-mini-card">
+                                <i class="fas fa-box-open"></i>
+                                <strong>Food rescue</strong>
+                                Fresh food and grocery support routed where it matters.
+                            </div>
+                            <div class="hero-mini-card">
+                                <i class="fas fa-map-location-dot"></i>
+                                <strong>Map-based requests</strong>
+                                Live location helps the team reach applicants faster.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="stats-section">
+                <div class="stats-shell">
+                    <div class="stats-container">
+                        <div class="stat-card animate-entry">
+                            <i class="fas fa-people-group"></i>
+                            <span class="stat-number" data-count="20000">0</span>
+                            <p>People Reached</p>
+                        </div>
+                        <div class="stat-card animate-entry">
+                            <i class="fas fa-bowl-food"></i>
+                            <span class="stat-number" data-count="50000">0</span>
+                            <p>Meals Shared</p>
+                        </div>
+                        <div class="stat-card animate-entry">
+                            <i class="fas fa-hands-helping"></i>
+                            <span class="stat-number" data-count="200">0</span>
+                            <p>Volunteers</p>
+                        </div>
+                        <div class="stat-card animate-entry">
+                            <i class="fas fa-location-dot"></i>
+                            <span class="stat-number" data-count="10">0</span>
+                            <p>Service Areas</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <div>
+                        <div class="eyebrow" style="background: rgba(54, 95, 71, 0.08); color: var(--moss);">What We Do</div>
+                        <h2>One network, multiple ways to support.</h2>
+                    </div>
+                    <p>From donation pickups to direct food assistance, the platform is designed to move help from willing hands to waiting homes.</p>
+                </div>
+                <div class="feature-grid">
+                    <article class="feature-card animate-entry">
+                        <i class="fas fa-truck"></i>
+                        <h3>Collect Food Donations</h3>
+                        <p>Donors can schedule pickups for groceries, prepared meals, and food drives directly from the website.</p>
+                    </article>
+                    <article class="feature-card animate-entry">
+                        <i class="fas fa-hand-holding-heart"></i>
+                        <h3>Support People in Need</h3>
+                        <p>Families, shelters, and organizations can request food support through a clear guided application flow.</p>
+                    </article>
+                    <article class="feature-card animate-entry">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Respond to Emergencies</h3>
+                        <p>Urgent food cases are highlighted with direct hotline access for quicker follow-up and distribution.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="split-layout">
+                    <div class="story-card card animate-entry">
+                        <div class="eyebrow" style="background: rgba(203, 107, 78, 0.08); color: var(--terracotta);">About FOODSHARE</div>
+                        <h2 style="font-size: 2.35rem; margin-bottom: 1rem;">Built to turn rescued food into dependable community care.</h2>
+                        <p>Founded in 2020, FOODSHARE started as a local response to food insecurity and grew into a practical support system connecting donors, volunteers, and neighborhoods.</p>
+                        <p>We work with businesses, farms, organizers, and residents to make sure edible food is not wasted and that families receive help with dignity.</p>
+                        <div class="story-highlights">
+                            <div><i class="fas fa-check-circle" style="color: var(--moss);"></i> Local pickup coordination for food donors</div>
+                            <div><i class="fas fa-check-circle" style="color: var(--moss);"></i> Food support requests for families and organizations</div>
+                            <div><i class="fas fa-check-circle" style="color: var(--moss);"></i> Community-first approach focused on speed and respect</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="showPage('about')"><i class="fas fa-arrow-right"></i> Explore Our Story</button>
+                    </div>
+                    <div class="story-visual card animate-entry">
+                        <img src="images/pexels-jimbear-1657935.jpg" alt="Fresh food support">
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <div>
+                        <div class="eyebrow" style="background: rgba(126, 174, 197, 0.12); color: #2a5167;">How We Work</div>
+                        <h2>Simple steps, meaningful outcomes.</h2>
+                    </div>
+                    <p>The website now supports both sides of the process: people who want to give and people who need support.</p>
+                </div>
+                <div class="impact-grid">
+                    <article class="impact-card animate-entry">
+                        <i class="fas fa-box"></i>
+                        <h3>Receive donations</h3>
+                        <p>Food and money donations are submitted online, making outreach and logistics easier to manage.</p>
+                    </article>
+                    <article class="impact-card animate-entry">
+                        <i class="fas fa-location-crosshairs"></i>
+                        <h3>Locate requests</h3>
+                        <p>Applicants can type their address and pin their live location to improve delivery accuracy.</p>
+                    </article>
+                    <article class="impact-card animate-entry">
+                        <i class="fas fa-users-viewfinder"></i>
+                        <h3>Serve communities</h3>
+                        <p>Teams can route food toward households, shelters, and group distributions with better visibility.</p>
+                    </article>
+                </div>
+            </section>
+        </div>
+
+        <div id="about" class="page">
+            <section class="page-hero">
+                <div class="page-hero-shell about-hero-shell">
+                    <div class="eyebrow"><i class="fas fa-seedling"></i> About Us</div>
+                    <h1>Food relief shaped by community trust.</h1>
+                    <p>We are building a food support network that respects people’s dignity, reduces waste, and keeps care rooted in the neighborhoods we serve.</p>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="feature-grid">
+                    <article class="feature-card animate-entry">
+                        <i class="fas fa-bullseye"></i>
+                        <h3>Mission</h3>
+                        <p>Reduce food insecurity by rescuing edible surplus and redistributing it to people and organizations who need it most.</p>
+                    </article>
+                    <article class="feature-card animate-entry">
+                        <i class="fas fa-eye"></i>
+                        <h3>Vision</h3>
+                        <p>A city where no one goes hungry and food support is responsive, accessible, and community-led.</p>
+                    </article>
+                    <article class="feature-card animate-entry">
+                        <i class="fas fa-heart"></i>
+                        <h3>Values</h3>
+                        <p>Compassion, dignity, sustainability, urgency, and partnerships that make local care stronger every week.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <div>
+                        <div class="eyebrow" style="background: rgba(54, 95, 71, 0.08); color: var(--moss);">Journey</div>
+                        <h2>How FOODSHARE grew.</h2>
+                    </div>
+                    <p>What began as a small grassroots effort during a crisis has become a broader platform for donations, requests, and coordinated support.</p>
+                </div>
+                <div class="timeline-grid">
+                    <article class="timeline-card animate-entry">
+                        <i class="fas fa-house"></i>
+                        <h3>Started local</h3>
+                        <p>Meals were first distributed directly to nearby families experiencing sudden need during the pandemic.</p>
+                    </article>
+                    <article class="timeline-card animate-entry">
+                        <i class="fas fa-store"></i>
+                        <h3>Built partnerships</h3>
+                        <p>Local restaurants, businesses, and volunteers joined in to create a wider and more dependable support network.</p>
+                    </article>
+                    <article class="timeline-card animate-entry">
+                        <i class="fas fa-laptop"></i>
+                        <h3>Moved online</h3>
+                        <p>The website now helps donors and applicants connect with the organization through clearer, faster digital workflows.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <div>
+                        <div class="eyebrow" style="background: rgba(203, 107, 78, 0.08); color: var(--terracotta);">In Action</div>
+                        <h2>Scenes from community work.</h2>
+                    </div>
+                    <p>Food rescue, distribution, and volunteer support are all part of the same shared effort.</p>
+                </div>
+                <div class="about-image-strip">
+                    <div class="animate-entry"><img src="images/pexels-lagosfoodbank-9090750.jpg" alt="Food distribution volunteers"></div>
+                    <div class="animate-entry"><img src="images/1.jpeg" alt="Food support activity"></div>
+                    <div class="animate-entry"><img src="images/2.jpg" alt="Local outreach"></div>
+                </div>
+            </section>
+        </div>
+
+        <div id="donate" class="page">
+            <section class="page-hero">
+                <div class="page-hero-shell donate-hero-shell">
+                    <div class="eyebrow"><i class="fas fa-hand-holding-heart"></i> Donate</div>
+                    <h1>Choose how you want to help.</h1>
+                    <p>Contribute funds for operations and meal support, or schedule a pickup for food donations that can be redistributed quickly.</p>
+                </div>
+            </section>
+
+            <div class="donation-types">
+                <div class="donation-card animate-entry">
+                    <div class="donation-header money-donation">
+                        <i class="fa-solid fa-indian-rupee-sign" style="font-size: 2.8rem;"></i>
+                        <h3>Monetary Donation</h3>
+                        <p>Support purchases, transport, packaging, and the day-to-day work needed to keep food moving.</p>
+                    </div>
+                    <div class="donation-form">
+                        <div class="success-message" id="money-success"></div>
+                        <div class="error-message" id="money-error"></div>
+                        <div class="loading" id="money-loading">
+                            <div class="spinner"></div>
+                            <p>Processing your donation...</p>
+                        </div>
+                        <form id="money-donation-form">
+                            <div class="form-group">
+                                <label>Donation Amount</label>
+                                <select name="amount" required>
+                                    <option value="">Select Amount</option>
+                                    <option value="250">Rs 250</option>
+                                    <option value="500">Rs 500</option>
+                                    <option value="1000">Rs 1000</option>
+                                    <option value="2500">Rs 2500</option>
+                                    <option value="5000">Rs 5000</option>
+                                    <option value="custom">Custom Amount</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="custom-amount" style="display: none;">
+                                <label>Custom Amount (Rs)</label>
+                                <input type="number" name="custom_amount" min="1" placeholder="Enter amount">
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" name="name" required placeholder="Your full name">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" name="email" required placeholder="your.email@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" name="phone" required placeholder="+91 xxxxx xxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label>Payment Method</label>
+                                <select name="payment_method" required>
+                                    <option value="">Select Payment Method</option>
+                                    <option value="credit_card">Credit Card</option>
+                                    <option value="paypal">PayPal</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                <i class="fas fa-heart"></i> Donate Now
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="donation-card animate-entry">
+                    <div class="donation-header food-donation">
+                        <i class="fas fa-apple-whole" style="font-size: 2.8rem;"></i>
+                        <h3>Food Donation</h3>
+                        <p>Donate groceries, prepared meals, or surplus ingredients and let us arrange the pickup.</p>
+                    </div>
+                    <div class="donation-form">
+                        <div class="success-message" id="food-success"></div>
+                        <div class="error-message" id="food-error"></div>
+                        <div class="loading" id="food-loading">
+                            <div class="spinner"></div>
+                            <p>Submitting your donation...</p>
+                        </div>
+                        <form id="food-donation-form">
+                            <div class="form-group">
+                                <label>Food Type</label>
+                                <select name="food_type" required>
+                                    <option value="">Select Food Type</option>
+                                    <option value="fresh_produce">Fresh Produce</option>
+                                    <option value="canned_goods">Canned Goods</option>
+                                    <option value="dry_goods">Dry Goods (Rice, Pasta, etc.)</option>
+                                    <option value="prepared_meals">Prepared Meals</option>
+                                    <option value="dairy_products">Dairy Products</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity/Description</label>
+                                <textarea name="description" rows="3" required placeholder="Describe the food items and estimated quantity"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Pickup Date</label>
+                                <input type="date" name="pickup_date" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Name</label>
+                                <input type="text" name="contact_name" required placeholder="Your name">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" name="contact_phone" required placeholder="+91 xxxxx xxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label>Email (Optional)</label>
+                                <input type="email" name="contact_email" placeholder="your.email@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Pickup Address</label>
+                                <textarea name="pickup_address" rows="2" required placeholder="Full address for pickup"></textarea>
+                                <div class="map-picker">
+                                    <div class="map-picker-toolbar">
+                                        <button type="button" id="use-current-pickup-location"><i class="fas fa-location-crosshairs"></i> Use Pickup Live Location</button>
+                                    </div>
+                                    <div class="map-picker-note">Drop a pin on the map so our pickup team can find your location faster.</div>
+                                    <div id="food-donation-map"></div>
+                                </div>
+                                <div class="location-status" id="pickup-location-status">No pickup pin selected yet. You can still type the address, or use the map for live location.</div>
+                                <input type="hidden" name="pickup_latitude">
+                                <input type="hidden" name="pickup_longitude">
+                                <input type="hidden" name="location_source">
+                            </div>
+                            <div class="form-group">
+                                <label>Special Instructions</label>
+                                <textarea name="special_instructions" rows="2" placeholder="Any special handling instructions or notes"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                                <i class="fas fa-truck"></i> Schedule Pickup
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="request-food" class="page">
+            <section class="page-hero">
+                <div class="page-hero-shell request-hero-shell">
+                    <div class="eyebrow"><i class="fas fa-bowl-food"></i> Request Food Support</div>
+                    <h1>Apply for groceries, meals, or group food assistance.</h1>
+                    <p>Individuals, families, shelters, and organizations can request support here. Add a location pin for faster coordination.</p>
+                </div>
+            </section>
+
+            <div class="request-food-shell">
+                <aside class="request-food-sidebar card animate-entry">
+                    <div class="request-food-kicker"><i class="fas fa-seedling"></i> Application Guide</div>
+                    <h3>Support for households and community groups.</h3>
+                    <p>Use this form when food is needed for home delivery, group distribution, shelter support, or short-term emergency assistance.</p>
+
+                    <div class="request-food-stat-grid">
+                        <div class="request-food-stat">
+                            <strong>Who can apply</strong>
+                            Individuals, families, NGOs, shelters, and organizers
+                        </div>
+                        <div class="request-food-stat">
+                            <strong>What can be requested</strong>
+                            Groceries, meals, ration kits, and bulk food support
+                        </div>
+                    </div>
+
+                    <div class="request-food-support-grid">
+                        <div class="request-food-support-item">
+                            <strong>Single household</strong>
+                            Request support for your home or family.
+                        </div>
+                        <div class="request-food-support-item">
+                            <strong>Community delivery</strong>
+                            Request food for a shelter, event, or local group.
+                        </div>
+                    </div>
+
+                    <ul class="request-food-checklist">
+                        <li><i class="fas fa-circle-check"></i><span>Add a clear address and number of people who need food.</span></li>
+                        <li><i class="fas fa-circle-check"></i><span>Use the map if the area is hard to locate or inside a large campus.</span></li>
+                        <li><i class="fas fa-circle-check"></i><span>Share dietary needs, access details, or timing notes.</span></li>
+                    </ul>
+
+                    <div class="request-food-hotline">
+                        <strong>Urgent case?</strong><br>
+                        For immediate help, call <a href="tel:+918421269332">+91 84212 69332</a>.
+                    </div>
+                </aside>
+
+                <div class="request-food-form-card card animate-entry">
+                    <div class="request-food-form-header">
+                        <h3>Food Assistance Application</h3>
+                        <p>Fill in the details below. Better information helps the team respond faster and route support more accurately.</p>
+                        <div class="request-food-badges">
+                            <span>Free application</span>
+                            <span>Live map location</span>
+                            <span>For people and organizations</span>
+                        </div>
+                    </div>
+
+                    <div class="success-message" id="request-food-success"></div>
+                    <div class="error-message" id="request-food-error"></div>
+                    <div class="loading" id="request-food-loading">
+                        <div class="spinner"></div>
+                        <p>Submitting your request...</p>
+                    </div>
+
+                    <form id="request-food-form">
+                        <div class="request-food-form-grid">
+                            <div class="request-food-section-title">
+                                <span><i class="fas fa-id-card"></i> Applicant Details</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Applicant Type</label>
+                                <select name="applicant_type" required>
+                                    <option value="">Select Applicant Type</option>
+                                    <option value="individual">Individual / Family</option>
+                                    <option value="organization">Organization / Shelter / NGO</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Applicant or Contact Person Name</label>
+                                <input type="text" name="applicant_name" required placeholder="Enter full name">
+                            </div>
+
+                            <div class="form-group form-group-full" id="organization-name-group" style="display: none;">
+                                <label>Organization Name</label>
+                                <input type="text" name="organization_name" placeholder="Enter organization name">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" name="phone" required placeholder="+91 xxxxx xxxxx">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Email (Optional)</label>
+                                <input type="email" name="email" placeholder="your.email@example.com">
+                            </div>
+
+                            <div class="request-food-section-title">
+                                <span><i class="fas fa-location-dot"></i> Delivery Location</span>
+                            </div>
+
+                            <div class="form-group form-group-full">
+                                <label>Full Address</label>
+                                <textarea name="address" rows="2" required placeholder="Area, street, landmark, full address"></textarea>
+                                <div class="map-picker">
+                                    <div class="map-picker-toolbar">
+                                        <button type="button" id="use-current-location"><i class="fas fa-location-crosshairs"></i> Use My Current Location</button>
+                                    </div>
+                                    <div class="map-picker-note">Tap the map to drop a pin for the exact location. This helps us find the address faster.</div>
+                                    <div id="request-food-map"></div>
+                                </div>
+                                <div class="location-status" id="location-status">No map pin selected yet. You can still type the address, or use the map for live location.</div>
+                                <input type="hidden" name="latitude">
+                                <input type="hidden" name="longitude">
+                                <input type="hidden" name="location_source">
+                            </div>
+
+                            <div class="form-group">
+                                <label>City / Area</label>
+                                <input type="text" name="city" placeholder="Kolhapur">
+                            </div>
+
+                            <div class="request-food-form-note">
+                                Add a map pin if the address is difficult to locate, inside a lane, or part of a larger building or shelter complex.
+                            </div>
+
+                            <div class="request-food-section-title">
+                                <span><i class="fas fa-box-open"></i> Support Needed</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label>How many people need food?</label>
+                                <input type="number" name="people_count" min="1" required placeholder="Number of people">
+                            </div>
+
+                            <div class="form-group">
+                                <label>What kind of food support is needed?</label>
+                                <textarea name="food_needed" rows="3" required placeholder="Groceries, cooked meals, ration kits, children's food, etc."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Preferred Support Date (Optional)</label>
+                                <input type="date" name="preferred_date">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Additional Notes</label>
+                                <textarea name="additional_notes" rows="3" placeholder="Share any dietary needs, delivery details, or special circumstances"></textarea>
+                            </div>
+
+                            <div class="request-food-submit">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-hand-holding-heart"></i> Submit Request</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="contact" class="page">
+            <section class="page-hero">
+                <div class="page-hero-shell contact-hero-shell">
+                    <div class="eyebrow"><i class="fas fa-comments"></i> Contact</div>
+                    <h1>Reach the team behind the support network.</h1>
+                    <p>Get in touch for partnerships, volunteer interest, donation questions, or emergency food assistance.</p>
+                </div>
+            </section>
+
+            <div class="contact-layout">
+                <div class="contact-card card animate-entry">
+                    <div class="eyebrow" style="background: rgba(54, 95, 71, 0.08); color: var(--moss);">Contact Information</div>
+                    <h2 style="font-size: 2rem; margin-bottom: 0.8rem;">We are here to help.</h2>
+                    <p style="color: var(--muted);">Use the message form for standard inquiries or contact the hotline directly for urgent food assistance.</p>
+
+                    <div class="contact-list">
+                        <div class="contact-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <strong>Address</strong><br>
+                                Rajarampuri 4th Lane<br>
+                                Kolhapur 416008
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <div>
+                                <strong>Phone</strong><br>
+                                <a href="tel:+918421269332">+91 84212 69332</a><br>
+                                <span class="form-note">Mon-Fri: 8AM-6PM</span>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>Email</strong><br>
+                                <a href="mailto:info@foodshare.org">info@foodshare.org</a>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Emergency Hotline</strong><br>
+                                <a href="tel:+918421269332">+91 84212 69332</a><br>
+                                <span class="form-note">24/7 Emergency Food Assistance</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-card card animate-entry">
+                    <div class="eyebrow" style="background: rgba(126, 174, 197, 0.14); color: #2a5167;">Send A Message</div>
+                    <h2 style="font-size: 2rem; margin-bottom: 0.8rem;">Tell us what you need.</h2>
+                    <p style="color: var(--muted); margin-bottom: 1rem;">We usually reply within one working day for standard inquiries.</p>
+
+                    <div class="success-message" id="contact-success"></div>
+                    <div class="error-message" id="contact-error"></div>
+                    <div class="loading" id="contact-loading">
+                        <div class="spinner"></div>
+                        <p>Sending your message...</p>
+                    </div>
+
+                    <form id="contact-form">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" name="name" required placeholder="Your full name">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" required placeholder="your.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone (Optional)</label>
+                            <input type="tel" name="phone" placeholder="+91 xxxxx xxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select name="subject" required>
+                                <option value="">Select Subject</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="volunteer">Volunteer Opportunities</option>
+                                <option value="partnership">Partnership Inquiry</option>
+                                <option value="donation">Donation Question</option>
+                                <option value="emergency">Emergency Assistance</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Message</label>
+                            <textarea name="message" rows="5" required placeholder="Your message here..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                            <i class="fas fa-paper-plane"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-panel">
+                <h3>FOODSHARE</h3>
+                <p>Helping move food where it is needed most through community donations, support requests, and on-the-ground coordination.</p>
+            </div>
+            <div class="footer-panel">
+                <h3>Quick Links</h3>
+                <div class="footer-links">
+                    <a href="#" onclick="showPage('home')">Home</a>
+                    <a href="#" onclick="showPage('about')">About</a>
+                    <a href="#" onclick="showPage('donate')">Donate</a>
+                    <a href="#" onclick="showPage('request-food')">Request Food</a>
+                    <a href="#" onclick="showPage('contact')">Contact</a>
+                </div>
+            </div>
+            <div class="footer-panel">
+                <h3>Reach Us</h3>
+                <div class="footer-links">
+                    <a href="tel:+918421269332">+91 84212 69332</a>
+                    <a href="mailto:info@foodshare.org">info@foodshare.org</a>
+                    <span>Rajarampuri 4th Lane, Kolhapur 416008</span>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 FOODSHARE. Making a difference, one meal at a time.</p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        let requestFoodMap;
+        let requestFoodMarker;
+        let foodDonationMap;
+        let foodDonationMarker;
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+
+            const targetPage = document.getElementById(pageId);
+            if (!targetPage) return;
+
+            targetPage.classList.add('active');
+            window.location.hash = pageId;
+            window.scrollTo(0, 0);
+
+            if (pageId === 'home') {
+                setTimeout(() => {
+                    loadStats();
+                    animateStats();
+                }, 300);
+            }
+
+            if (pageId === 'request-food') {
+                setTimeout(() => {
+                    initializeRequestFoodMap();
+                    if (requestFoodMap) {
+                        requestFoodMap.invalidateSize();
+                    }
+                }, 250);
+            }
+
+            if (pageId === 'donate') {
+                setTimeout(() => {
+                    initializeFoodDonationMap();
+                    if (foodDonationMap) {
+                        foodDonationMap.invalidateSize();
+                    }
+                }, 250);
+            }
+
+            setTimeout(observeCards, 120);
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('api/stats.php');
+                const data = await response.json();
+
+                if (data.success) {
+                    const statMap = {
+                        20000: data.data.people_fed,
+                        50000: data.data.meals_served,
+                        200: data.data.volunteers,
+                        10: data.data.locations
+                    };
+
+                    document.querySelectorAll('.stat-number').forEach(stat => {
+                        const currentTarget = stat.getAttribute('data-count');
+                        if (statMap[currentTarget] !== undefined) {
+                            stat.setAttribute('data-count', statMap[currentTarget]);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Stats load error:', error);
+            }
+        }
+
+        function animateStats() {
+            document.querySelectorAll('.stat-number').forEach(stat => {
+                const target = parseInt(stat.getAttribute('data-count'), 10) || 0;
+                let current = 0;
+                const increment = Math.max(1, target / 60);
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    stat.textContent = Math.floor(current).toLocaleString();
+                }, 20);
+            });
+        }
+
+        function showMessage(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.add('show');
+            setTimeout(() => element.classList.remove('show'), 5000);
+        }
+
+        function showLoading(elementId, show = true) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            element.classList.toggle('show', show);
+        }
+
+        function updateLocationFields(latitude, longitude, source = 'map') {
+            const form = document.getElementById('request-food-form');
+            form.querySelector('input[name="latitude"]').value = Number(latitude).toFixed(7);
+            form.querySelector('input[name="longitude"]').value = Number(longitude).toFixed(7);
+            form.querySelector('input[name="location_source"]').value = source;
+            document.getElementById('location-status').textContent = `Location selected: ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)} (${source === 'gps' ? 'current location' : 'map pin'})`;
+        }
+
+        function updatePickupLocationFields(latitude, longitude, source = 'map') {
+            const form = document.getElementById('food-donation-form');
+            form.querySelector('input[name="pickup_latitude"]').value = Number(latitude).toFixed(7);
+            form.querySelector('input[name="pickup_longitude"]').value = Number(longitude).toFixed(7);
+            form.querySelector('input[name="location_source"]').value = source;
+            document.getElementById('pickup-location-status').textContent = `Pickup location selected: ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)} (${source === 'gps' ? 'current location' : 'map pin'})`;
+        }
+
+        function placeRequestFoodMarker(latitude, longitude, source = 'map') {
+            if (!requestFoodMap || !window.L) return;
+
+            const latLng = [latitude, longitude];
+            if (!requestFoodMarker) {
+                requestFoodMarker = L.marker(latLng).addTo(requestFoodMap);
+            } else {
+                requestFoodMarker.setLatLng(latLng);
+            }
+
+            requestFoodMap.setView(latLng, 15);
+            updateLocationFields(latitude, longitude, source);
+        }
+
+        function initializeRequestFoodMap() {
+            if (!window.L || requestFoodMap) return;
+
+            requestFoodMap = L.map('request-food-map');
+            requestFoodMap.setView([16.7050, 74.2433], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(requestFoodMap);
+
+            requestFoodMap.on('click', function(event) {
+                placeRequestFoodMarker(event.latlng.lat, event.latlng.lng, 'map');
+            });
+        }
+
+        function placeFoodDonationMarker(latitude, longitude, source = 'map') {
+            if (!foodDonationMap || !window.L) return;
+
+            const latLng = [latitude, longitude];
+            if (!foodDonationMarker) {
+                foodDonationMarker = L.marker(latLng).addTo(foodDonationMap);
+            } else {
+                foodDonationMarker.setLatLng(latLng);
+            }
+
+            foodDonationMap.setView(latLng, 15);
+            updatePickupLocationFields(latitude, longitude, source);
+        }
+
+        function initializeFoodDonationMap() {
+            if (!window.L || foodDonationMap) return;
+
+            foodDonationMap = L.map('food-donation-map');
+            foodDonationMap.setView([16.7050, 74.2433], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(foodDonationMap);
+
+            foodDonationMap.on('click', function(event) {
+                placeFoodDonationMarker(event.latlng.lat, event.latlng.lng, 'map');
+            });
+        }
+
+        document.getElementById('money-donation-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showLoading('money-loading', true);
+
+            const formData = new FormData(e.target);
+            const donationData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                amount: formData.get('amount') === 'custom' ? formData.get('custom_amount') : formData.get('amount'),
+                payment_method: formData.get('payment_method'),
+                notes: 'Online donation via website'
+            };
+
+            try {
+                const response = await fetch('api/donate_money.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(donationData)
+                });
+
+                const result = await response.json();
+                showLoading('money-loading', false);
+
+                if (result.success) {
+                    showMessage('money-success', `Thank you for your generous donation of Rs ${donationData.amount}! Transaction ID: ${result.transaction_id}`);
+                    e.target.reset();
+                    document.getElementById('custom-amount').style.display = 'none';
+                } else {
+                    showMessage('money-error', result.error || 'Failed to process donation. Please try again.');
+                }
+            } catch (error) {
+                showLoading('money-loading', false);
+                showMessage('money-error', 'Network error. Please check your connection and try again.');
+                console.error('Donation error:', error);
+            }
+        });
+
+        document.getElementById('food-donation-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showLoading('food-loading', true);
+
+            const formData = new FormData(e.target);
+            const foodData = {
+                food_type: formData.get('food_type'),
+                description: formData.get('description'),
+                pickup_date: formData.get('pickup_date'),
+                contact_name: formData.get('contact_name'),
+                contact_phone: formData.get('contact_phone'),
+                contact_email: formData.get('contact_email'),
+                pickup_address: formData.get('pickup_address'),
+                pickup_latitude: formData.get('pickup_latitude'),
+                pickup_longitude: formData.get('pickup_longitude'),
+                location_source: formData.get('location_source'),
+                special_instructions: formData.get('special_instructions')
+            };
+
+            try {
+                const response = await fetch('api/donate_food.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(foodData)
+                });
+
+                const result = await response.json();
+                showLoading('food-loading', false);
+
+                if (result.success) {
+                    showMessage('food-success', `Food donation scheduled successfully! Pickup ID: ${result.donation_id}. We'll contact you at ${foodData.contact_phone} to confirm details.`);
+                    e.target.reset();
+                    document.getElementById('pickup-location-status').textContent = 'No pickup pin selected yet. You can still type the address, or use the map for live location.';
+
+                    if (foodDonationMarker && foodDonationMap) {
+                        foodDonationMap.removeLayer(foodDonationMarker);
+                        foodDonationMarker = null;
+                        foodDonationMap.setView([16.7050, 74.2433], 12);
+                    }
+                } else {
+                    showMessage('food-error', result.error || 'Failed to schedule food donation. Please try again.');
+                }
+            } catch (error) {
+                showLoading('food-loading', false);
+                showMessage('food-error', 'Network error. Please check your connection and try again.');
+                console.error('Food donation error:', error);
+            }
+        });
+
+        document.getElementById('request-food-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showLoading('request-food-loading', true);
+
+            const formData = new FormData(e.target);
+            const requestData = {
+                applicant_type: formData.get('applicant_type'),
+                applicant_name: formData.get('applicant_name'),
+                organization_name: formData.get('organization_name'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                city: formData.get('city'),
+                latitude: formData.get('latitude'),
+                longitude: formData.get('longitude'),
+                location_source: formData.get('location_source'),
+                people_count: formData.get('people_count'),
+                food_needed: formData.get('food_needed'),
+                preferred_date: formData.get('preferred_date'),
+                additional_notes: formData.get('additional_notes')
+            };
+
+            try {
+                const response = await fetch('api/request_food.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+                showLoading('request-food-loading', false);
+
+                if (result.success) {
+                    showMessage('request-food-success', `Your request has been submitted successfully. Request ID: ${result.request_id}. We will contact you at ${requestData.phone} soon.`);
+                    e.target.reset();
+                    document.getElementById('organization-name-group').style.display = 'none';
+                    document.querySelector('#organization-name-group input').required = false;
+                    document.getElementById('location-status').textContent = 'No map pin selected yet. You can still type the address, or use the map for live location.';
+
+                    if (requestFoodMarker && requestFoodMap) {
+                        requestFoodMap.removeLayer(requestFoodMarker);
+                        requestFoodMarker = null;
+                        requestFoodMap.setView([16.7050, 74.2433], 12);
+                    }
+                } else {
+                    showMessage('request-food-error', result.error || 'Failed to submit request. Please try again.');
+                }
+            } catch (error) {
+                showLoading('request-food-loading', false);
+                showMessage('request-food-error', 'Network error. Please check your connection and try again.');
+                console.error('Food support request error:', error);
+            }
+        });
+
+        document.getElementById('contact-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showLoading('contact-loading', true);
+
+            const formData = new FormData(e.target);
+            const contactData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                subject: formData.get('subject'),
+                message: formData.get('message')
+            };
+
+            try {
+                const response = await fetch('api/contact.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(contactData)
+                });
+
+                const result = await response.json();
+                showLoading('contact-loading', false);
+
+                if (result.success) {
+                    showMessage('contact-success', `Thank you for your message! We've received your ${contactData.subject} inquiry and will respond within 24 hours.`);
+                    e.target.reset();
+                } else {
+                    showMessage('contact-error', result.error || 'Failed to send message. Please try again.');
+                }
+            } catch (error) {
+                showLoading('contact-loading', false);
+                showMessage('contact-error', 'Network error. Please check your connection and try again.');
+                console.error('Contact error:', error);
+            }
+        });
+
+        document.querySelector('select[name="amount"]').addEventListener('change', function() {
+            const customAmount = document.getElementById('custom-amount');
+            const customInput = customAmount.querySelector('input');
+
+            if (this.value === 'custom') {
+                customAmount.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customAmount.style.display = 'none';
+                customInput.required = false;
+            }
+        });
+
+        document.querySelector('select[name="applicant_type"]').addEventListener('change', function() {
+            const organizationGroup = document.getElementById('organization-name-group');
+            const organizationInput = organizationGroup.querySelector('input');
+
+            if (this.value === 'organization') {
+                organizationGroup.style.display = 'block';
+                organizationInput.required = true;
+            } else {
+                organizationGroup.style.display = 'none';
+                organizationInput.required = false;
+                organizationInput.value = '';
+            }
+        });
+
+        document.getElementById('use-current-location').addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                document.getElementById('location-status').textContent = 'Live location is not supported on this device.';
+                return;
+            }
+
+            document.getElementById('location-status').textContent = 'Detecting your current location...';
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    initializeRequestFoodMap();
+                    placeRequestFoodMarker(position.coords.latitude, position.coords.longitude, 'gps');
+                },
+                function() {
+                    document.getElementById('location-status').textContent = 'Unable to fetch current location. Please allow location access or tap the map manually.';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+
+        document.getElementById('use-current-pickup-location').addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                document.getElementById('pickup-location-status').textContent = 'Live location is not supported on this device.';
+                return;
+            }
+
+            document.getElementById('pickup-location-status').textContent = 'Detecting pickup location...';
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    initializeFoodDonationMap();
+                    placeFoodDonationMarker(position.coords.latitude, position.coords.longitude, 'gps');
+                },
+                function() {
+                    document.getElementById('pickup-location-status').textContent = 'Unable to fetch current location. Please allow location access or tap the map manually.';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+
+        const pickupInput = document.querySelector('input[name="pickup_date"]');
+        const preferredInput = document.querySelector('input[name="preferred_date"]');
+        if (pickupInput) pickupInput.min = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+        if (preferredInput) preferredInput.min = new Date().toISOString().split('T')[0];
+
+        function observeCards() {
+            const cards = document.querySelectorAll('.animate-entry');
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+
+            cards.forEach(card => {
+                if (!card.classList.contains('animate-in')) {
+                    observer.observe(card);
+                }
+            });
+        }
+
+        window.addEventListener('load', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash && document.getElementById(hash)) {
+                showPage(hash);
+            } else {
+                showPage('home');
+            }
+            observeCards();
+        });
+
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash && document.getElementById(hash)) {
+                showPage(hash);
+            }
+        });
+    </script>
+</body>
+</html>
