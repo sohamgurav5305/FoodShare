@@ -1855,7 +1855,7 @@
 
         async function loadStats() {
             try {
-                const response = await fetch('api/stats.php');
+                const response = await fetch('api/stats');
                 const data = await response.json();
 
                 if (data.success) {
@@ -1998,7 +1998,7 @@
             };
 
             try {
-                const response = await fetch('api/donate_money.php', {
+                const response = await fetch('api/donate_money', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(donationData)
@@ -2041,7 +2041,7 @@
             };
 
             try {
-                const response = await fetch('api/donate_food.php', {
+                const response = await fetch('api/donate_food', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(foodData)
@@ -2093,7 +2093,7 @@
             };
 
             try {
-                const response = await fetch('api/request_food.php', {
+                const response = await fetch('api/request_food', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestData)
@@ -2138,7 +2138,7 @@
             };
 
             try {
-                const response = await fetch('api/contact.php', {
+                const response = await fetch('api/contact', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(contactData)
